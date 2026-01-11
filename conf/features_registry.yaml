@@ -1,0 +1,184 @@
+# conf/features_registry.yaml
+# Master definition of feature families and their columns.
+
+# ------------------------------------------------------------------------
+# Bar-level features (per instrument, anchor_tf, ts)
+# ------------------------------------------------------------------------
+ict_struct:
+  table: "data/features"
+  enabled: true
+  maturity: "experimental"
+  threshold_keys: []
+  description: "ICT structural swing / liquidity features."
+  primary_key:
+    - instrument
+    - anchor_tf
+    - ts
+  columns:
+    instrument: { role: key, dtype: string }
+    anchor_tf:  { role: key, dtype: string }
+    ts:         { role: key, dtype: timestamp }
+    ict_struct_swing_high:      { role: feature, dtype: double }
+    ict_struct_swing_low:       { role: feature, dtype: double }
+    ict_struct_pd_index:        { role: feature, dtype: int }
+    ict_struct_liquidity_tag:   { role: feature, dtype: string }
+
+stat_ts:
+  table: "data/features"
+  enabled: true
+  maturity: "experimental"
+  threshold_keys: []
+  description: "Simple statistical time-series features (returns, vol, range)."
+  primary_key:
+    - instrument
+    - anchor_tf
+    - ts
+  columns:
+    instrument: { role: key, dtype: string }
+    anchor_tf:  { role: key, dtype: string }
+    ts:         { role: key, dtype: timestamp }
+    stat_ts_return:        { role: feature, dtype: double }
+    stat_ts_vol:           { role: feature, dtype: double }
+    stat_ts_range:         { role: feature, dtype: double }
+    stat_ts_return_zscore: { role: feature, dtype: double }
+    stat_ts_vol_zscore:    { role: feature, dtype: double }
+    stat_ts_range_zscore:  { role: feature, dtype: double }
+
+ta_vol:
+  table: "data/features"
+  enabled: true
+  maturity: "experimental"
+  threshold_keys:
+    - atr_period
+    - ret_window
+  description: "ATR and simple volatility/range statistics."
+  primary_key:
+    - instrument
+    - anchor_tf
+    - ts
+  columns:
+    instrument: { role: key, dtype: string }
+    anchor_tf:  { role: key, dtype: string }
+    ts:         { role: key, dtype: timestamp }
+    ta_vol__atr:         { role: feature, dtype: double }
+    ta_vol__ret1_std:    { role: feature, dtype: double }
+    ta_vol__range_mean:  { role: feature, dtype: double }
+
+macro_calendar:
+  table: "data/features"
+  enabled: true
+  maturity: "experimental"
+  threshold_keys: []
+  description: "Bar-level macro blackout flags from macro calendar."
+  primary_key:
+    - instrument
+    - anchor_tf
+    - ts
+  columns:
+    instrument: { role: key, dtype: string }
+    anchor_tf:  { role: key, dtype: string }
+    ts:         { role: key, dtype: timestamp }
+    macro_is_blackout:          { role: feature, dtype: boolean }
+    macro_blackout_max_impact:  { role: feature, dtype: int }
+
+macro_regime:
+  table: "data/features"
+  enabled: false
+  maturity: "stub"
+  threshold_keys: []
+  description: "DEV STUB: macro regime state; currently no-op."
+  primary_key:
+    - instrument
+    - anchor_tf
+    - ts
+  columns: {}
+
+trade_path_class:
+  table: "data/features"
+  enabled: false
+  maturity: "stub"
+  threshold_keys: []
+  description: "DEV STUB: trade path classifier features."
+  primary_key:
+    - instrument
+    - anchor_tf
+    - ts
+  columns: {}
+
+unsup_regime:
+  table: "data/features"
+  enabled: false
+  maturity: "stub"
+  threshold_keys: []
+  description: "DEV STUB: unsupervised regime clustering features."
+  primary_key:
+    - instrument
+    - anchor_tf
+    - ts
+  columns: {}
+
+# ------------------------------------------------------------------------
+# Zone memory (per instrument, anchor_tf, zone_id, ts)
+# ------------------------------------------------------------------------
+zmf_core:
+  table: "data/zones_state"
+  enabled: true
+  maturity: "stub"
+  threshold_keys: []
+  description: "DEV STUB: core zone memory features."
+  primary_key:
+    - instrument
+    - anchor_tf
+    - zone_id
+    - ts
+  columns:
+    instrument:   { role: key, dtype: string }
+    anchor_tf:    { role: key, dtype: string }
+    zone_id:      { role: key, dtype: string }
+    ts:           { role: key, dtype: timestamp }
+    zmf_zone_kind:  { role: feature, dtype: string }
+    zmf_zone_lo:    { role: feature, dtype: double }
+    zmf_zone_hi:    { role: feature, dtype: double }
+    zmf_zone_mid:   { role: feature, dtype: double }
+    zmf_zone_width: { role: feature, dtype: double }
+
+vp_core:
+  table: "data/zones_state"
+  enabled: false
+  maturity: "stub"
+  threshold_keys: []
+  description: "DEV STUB: volume profile features per zone."
+  primary_key:
+    - instrument
+    - anchor_tf
+    - zone_id
+    - ts
+  columns: {}
+
+# ------------------------------------------------------------------------
+# Microstructure PCR/A (per PCR window)
+# ------------------------------------------------------------------------
+pcra_bar:
+  table: "data/pcr_a"
+  enabled: true
+  maturity: "stub"
+  threshold_keys:
+    - vol_z_window
+    - vol_z_low_high_cut
+    - vol_z_medium_high_cut
+  description: "DEV STUB: PCR/A bar-level microstructure features."
+  primary_key:
+    - instrument
+    - anchor_tf
+    - pcr_window_ts
+  columns:
+    instrument: { role: key, dtype: string }
+    anchor_tf:  { role: key, dtype: string }
+    pcr_window_ts: { role: key, dtype: timestamp }
+    pcr_ofi_value:          { role: feature, dtype: double }
+    pcr_ofi_bucket:         { role: feature, dtype: string }
+    pcr_micro_vol_value:    { role: feature, dtype: double }
+    pcr_micro_vol_bucket:   { role: feature, dtype: string }
+    pcr_range_value:        { role: feature, dtype: double }
+    pcr_range_bucket:       { role: feature, dtype: string }
+    pcr_clv_bucket:         { role: feature, dtype: string }
