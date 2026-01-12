@@ -164,7 +164,7 @@ def _eval_partitions(
       - if paradigm_id is None -> return []
       - if paradigm_id is provided, include paradigm_id partition
       - include principle_id when provided
-      - ALWAYS include candidate_id when in eval-mode (stable shape); use "" if absent
+      - ALWAYS include candidate_id when in eval-mode (stable shape); use the "∅" sentinel from _candidate_partition if absent
       - include experiment_id only when provided (can be introduced later)
 
     Robustness:
@@ -651,4 +651,3 @@ def trade_clusters_dir(
         base = base / p
 
     return base / f"dt={_fmt_dt(trading_day)}" / f"cluster_id={cluster_id}"
-
