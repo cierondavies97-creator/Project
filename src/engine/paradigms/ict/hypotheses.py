@@ -287,6 +287,8 @@ def build_ict_hypotheses(ctx: Any, windows: pl.DataFrame, features: pl.DataFrame
         else pl.lit(None).cast(pl.Int64)
     )
 
+    side_expr = pl.when(pl.col("anchor_ts").dt.hour() < 12).then(pl.lit("long")).otherwise(pl.lit("short"))
+
     # Decisions frame (stage writer will add dt later; keep minimal here)
     decisions_df = selected.select(
         [
@@ -297,6 +299,10 @@ def build_ict_hypotheses(ctx: Any, windows: pl.DataFrame, features: pl.DataFrame
             pl.lit(principle_id).cast(pl.Utf8).alias("principle_id"),
             pl.col("instrument").cast(pl.Utf8, strict=False).alias("instrument"),
             pl.col("trade_id").cast(pl.Utf8, strict=False).alias("trade_id"),
+            pl.col("anchor_tf").cast(pl.Utf8, strict=False).alias("anchor_tf"),
+            pl.col("anchor_ts").cast(pl.Datetime("us"), strict=False).alias("anchor_ts"),
+            pl.col("tf_entry").cast(pl.Utf8, strict=False).alias("tf_entry"),
+            side_expr.cast(pl.Utf8).alias("side"),
             macro_is_blackout_expr.alias("macro_is_blackout"),
             macro_blackout_max_impact_expr.alias("macro_blackout_max_impact"),
         ]
@@ -308,8 +314,6 @@ def build_ict_hypotheses(ctx: Any, windows: pl.DataFrame, features: pl.DataFrame
         dt_expr = pl.col("dt").cast(pl.Date, strict=False)
     else:
         dt_expr = pl.col("anchor_ts").dt.date().cast(pl.Date, strict=False)
-
-    side_expr = pl.when(pl.col("anchor_ts").dt.hour() < 12).then(pl.lit("long")).otherwise(pl.lit("short"))
 
     tp_df = selected.select(
         [
