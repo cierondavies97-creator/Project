@@ -137,7 +137,7 @@ def build_feature_frame(
         df = candles.filter(pl.col("tf") == pl.lit(str(anchor_tf)))
         if df.is_empty():
             # allow M1-only input; aggregate to anchor if needed
-            df = to_anchor_tf(candles, anchor_tf=str(anchor_tf))
+            df = to_anchor_tf(candles, anchor_tf=str(anchor_tf), where="ict_struct")
         if df.is_empty():
             continue
 
