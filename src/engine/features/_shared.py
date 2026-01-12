@@ -1,6 +1,7 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
-from typing import Iterable, Sequence
+from collections.abc import Mapping
+from typing import Iterable, Sequence, Any
 
 import polars as pl
 
@@ -68,6 +69,7 @@ def rolling_atr(
     group_cols: Sequence[str],
     period: int,
     out_col: str = "atr",
+    tr_col: str = "_tr",
     high_col: str = "high",
     low_col: str = "low",
     close_col: str = "close",
@@ -88,13 +90,56 @@ def rolling_atr(
         (pl.col(high_col) - pl.col(low_col)),
         (pl.col(high_col) - prev_close).abs(),
         (pl.col(low_col) - prev_close).abs(),
-    ).alias("_tr")
+    ).alias(tr_col)
 
     atr = (
-        pl.col("_tr")
+        pl.col(tr_col)
         .rolling_mean(window_size=period, min_periods=period)
         .over(list(group_cols))
         .alias(out_col)
     )
 
     return df.with_columns(tr).with_columns(atr)
+
+
+def conform_to_registry(
+    df: pl.DataFrame,
+    *,
+    registry_entry: Mapping[str, Any] | None,
+    key_cols: Sequence[str],
+    where: str,
+    allow_extra: bool = True,
+) -> pl.DataFrame:
+    """
+    Align a feature frame to a registry entry (if provided).
+
+    Behavior:
+      - If registry_entry is None or lacks 'columns', return df unchanged.
+      - Ensure required key columns are present; raise if missing.
+      - Add any registry columns missing from df as nulls.
+      - If allow_extra=False, drop columns not listed in the registry.
+    """
+    if df.is_empty():
+        return df
+    if registry_entry is None:
+        return df
+
+    columns = registry_entry.get("columns") if isinstance(registry_entry, Mapping) else None
+    if not isinstance(columns, Mapping) or not columns:
+        return df
+
+    missing_keys = [c for c in key_cols if c not in df.columns]
+    if missing_keys:
+        raise ValueError(f"{where}: missing required key columns: {missing_keys}")
+
+    expected_cols = list(columns.keys())
+    missing_expected = [c for c in expected_cols if c not in df.columns]
+    if missing_expected:
+        df = df.with_columns([pl.lit(None).alias(c) for c in missing_expected])
+
+    if not allow_extra:
+        extras = [c for c in df.columns if c not in expected_cols]
+        if extras:
+            df = df.drop(extras)
+
+    return df
