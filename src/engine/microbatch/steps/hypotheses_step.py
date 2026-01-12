@@ -9,7 +9,7 @@ from typing import Any, Optional
 import polars as pl
 import yaml
 
-from engine.core.schema import TRADE_PATHS_SCHEMA
+from engine.core.schema import TRADE_PATHS_SCHEMA, polars_dtype
 from engine.data.decisions import write_decisions_for_stage
 from engine.microbatch.types import BatchState
 from engine.paradigms.api import get_hypotheses_builder
@@ -159,7 +159,7 @@ def _default_expr_for_type(col_name: str, col_type: str) -> pl.Expr:
     if col_type == "boolean":
         return pl.lit(False).alias(col_name)
     if col_type == "timestamp":
-        return pl.lit(None).cast(pl.Datetime("ns")).alias(col_name)
+        return pl.lit(None).cast(polars_dtype(col_type)).alias(col_name)
     return pl.lit(None).cast(pl.Utf8).alias(col_name)
 
 
