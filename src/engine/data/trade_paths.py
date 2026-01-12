@@ -59,8 +59,7 @@ def ensure_trade_paths_engine_cols(ctx: RunContext, df: pl.DataFrame, trading_da
       - experiment_id optional; if present, null -> sentinel.
 
     Note:
-      - We add placeholder columns as typed NULLs (except path_filter_tags_json which defaults to "[]"
-        so JSON parsing is stable if/when used).
+      - We add placeholder columns as typed NULLs.
       - We do NOT create trade_id/instrument; those must already exist.
     """
     if df is None or df.is_empty():
@@ -120,9 +119,7 @@ def ensure_trade_paths_engine_cols(ctx: RunContext, df: pl.DataFrame, trading_da
             continue
 
         dtype = _dtype_for_schema_type(typ)
-        if name == "path_filter_tags_json":
-            add_exprs.append(pl.lit("[]").cast(dtype).alias(name))
-        elif name == "dt":
+        if name == "dt":
             add_exprs.append(pl.lit(trading_day).cast(pl.Date).alias(name))
         elif name in ("snapshot_id", "run_id", "mode"):
             # already added above, but keep deterministic if schema demands it
