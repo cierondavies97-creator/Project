@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Mapping
@@ -137,7 +137,7 @@ def build_feature_frame(
         df = candles.filter(pl.col("tf") == pl.lit(str(anchor_tf)))
         if df.is_empty():
             # allow M1-only input; aggregate to anchor if needed
-            df = to_anchor_tf(candles, anchor_tf=str(anchor_tf))
+            df = to_anchor_tf(candles, anchor_tf=str(anchor_tf), where="ict_struct")
         if df.is_empty():
             continue
 
@@ -370,5 +370,4 @@ def build_feature_frame(
         frames.append(out)
 
     return pl.concat(frames, how="vertical") if frames else pl.DataFrame()
-
 
