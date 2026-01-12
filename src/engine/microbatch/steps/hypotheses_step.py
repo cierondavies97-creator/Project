@@ -178,7 +178,10 @@ def _ensure_trade_paths_schema(df: pl.DataFrame) -> pl.DataFrame:
     # Stable partitions (Phase B)
     if "candidate_id" in out.columns:
         out = out.with_columns(pl.col("candidate_id").fill_null("∅"))
-        out = out.with_columns(pl.col("experiment_id").fill_null("∅"))
+        if "experiment_id" in out.columns:
+            out = out.with_columns(pl.col("experiment_id").fill_null("∅"))
+        else:
+            out = out.with_columns(pl.lit("∅").cast(pl.Utf8).alias("experiment_id"))
     return out
 
 
