@@ -68,7 +68,7 @@ def build_feature_frame(
     out_frames: list[pl.DataFrame] = []
 
     for anchor_tf in anchor_tfs:
-        df = to_anchor_tf(candles, anchor_tf=str(anchor_tf))
+        df = to_anchor_tf(candles, anchor_tf=str(anchor_tf), where="pcra_bar")
         if df.is_empty():
             continue
 
