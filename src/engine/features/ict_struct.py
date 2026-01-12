@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # Dev-stub: ICT structural features (bar-level)
 #
 # Key contract (features_step) for data/features is (instrument, anchor_tf, ts).
-# features_step will also day-filter on ts and validate the anchor grid. :contentReference[oaicite:2]{index=2}
+# features_step will also day-filter on ts and validate the anchor grid.
 #
 # Important Polars rule: do NOT reference a column created in the same with_columns call.
 # This implementation avoids that by using pure expressions and/or sequential with_columns.
