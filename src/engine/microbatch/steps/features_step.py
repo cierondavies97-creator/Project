@@ -292,6 +292,23 @@ def _build_table_for_cluster(
             logger.info("features_step: family '%s' produced empty frame; skipping", family.family_id)
             continue
 
+        from engine.features._shared import conform_to_registry
+
+        df = conform_to_registry(
+
+            df,
+
+            registry_entry=_registry_entry_of(family),
+
+            key_cols=spec.key_cols,
+
+            where=f"features_step:{family.family_id}",
+
+            allow_extra=False,
+
+        )
+
+
         missing_keys = [k for k in spec.key_cols if k not in df.columns]
         if missing_keys:
             raise ValueError(
