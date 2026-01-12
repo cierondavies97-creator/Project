@@ -207,61 +207,7 @@ def _select_candidate_windows(df: pl.DataFrame) -> pl.DataFrame:
 # Main builder
 # -----------------------------------------------------------------------------
 
-def build_ict_hypotheses(ctx: Any, windows: pl.DataFrame, features: pl.DataFrame, principle_cfg: dict) -> HypoOut:
-    paradigm_id = str(principle_cfg.get("paradigm_id", "ict"))
-    principle_id = str(principle_cfg.get("principle_id", "ict_all_windows"))
-
-    if windows is None or windows.is_empty():
-        return _empty_decisions(ctx, paradigm_id, principle_id), pl.DataFrame()
-
-    # Ensure minimum keys exist
-    for k in ("instrument", "anchor_tf", "anchor_ts", "tf_entry"):
-        if k not in windows.columns:
-            log.warning("ict.hypotheses: windows missing %s; returning empty", k)
-            return _empty_decisions(ctx, paradigm_id, principle_id), pl.DataFrame()
-
-    df = windows.sort(["instrument", "anchor_tf", "anchor_ts"])
-    df = _join_windows_with_features(df, features)
-
-    # Threshold (safe default)
-    features_auto = load_features_auto()
-    vol_z_abs_min = get_threshold_float(
-        features_auto=features_auto,
-        paradigm_id=paradigm_id,
-        family="stat_ts",
-        feature="stat_ts_vol_zscore",
-        threshold_key="abs_min_for_signal",
-        default=1.0,
-    )
-
-    cols = set(df.columns)
-
-    swing_expr = None
-    if ("ict_struct_swing_high" in cols) or ("ict_struct_swing_low" in cols):
-        swing_expr = (pl.col("ict_struct_swing_high").cast(pl.Float64, strict=False).fill_null(0.0) == 1.0) | (
-            pl.col("ict_struct_swing_low").cast(pl.Float64, strict=False).fill_null(0.0) == 1.0
-        )
-
-    vol_expr = None
-    if "stat_ts_vol_zscore" in cols:
-        vol_expr = pl.col("stat_ts_vol_zscore").cast(pl.Float64, strict=False).fill_null(0.0).abs() > float(vol_z_abs_min)
-
-    cond = None
-    for e in (swing_expr, vol_expr):
-        if e is None:
-            continue
-        cond = e if cond is None else (cond | e)
-
-    candidates = df.filter(cond) if cond is not None else df
-    selected = _select_candidate_windows(candidates if not candidates.is_empty() else df)
-    if selected.is_empty():
-        return _empty_decisions(ctx, paradigm_id, principle_id), pl.DataFrame()
-
-    snapshot_id = str(getattr(ctx, "snapshot_id", "") or "")
-    run_id = str(getattr(ctx, "run_id", "") or "")
-    mode = str(getattr(ctx, "mode", "") or "")
-
-    # Ensure anchor_ts is datetime for deterministic formatting
+def build_ict_hypotheses(ctx: Any, windows: pl.DataFrame, features: pl.DataFrame
     selected = selected.with_columns(pl.col("anchor_ts").cast(pl.Datetime("us"), strict=False).alias("anchor_ts"))
 
     # trade_id = "{run_id}-{instrument}-{anchor_tf}-{YYYYMMDDTHHMMSS}"
@@ -315,6 +261,8 @@ def build_ict_hypotheses(ctx: Any, windows: pl.DataFrame, features: pl.DataFrame
     else:
         dt_expr = pl.col("anchor_ts").dt.date().cast(pl.Date, strict=False)
 
+    side_expr = pl.when(pl.col("anchor_ts").dt.hour() < 12).then(pl.lit("long")).otherwise(pl.lit("short"))
+
     tp_df = selected.select(
         [
             pl.lit(snapshot_id).cast(pl.Utf8).alias("snapshot_id"),
@@ -365,3 +313,4 @@ def build_hypotheses_for_windows(
     to the current implementation.
     """
     return build_ict_hypotheses(ctx, windows, features, principle_cfg)
+)
