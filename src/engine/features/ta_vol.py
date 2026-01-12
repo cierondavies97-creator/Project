@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Mapping, Any
 
@@ -36,9 +36,9 @@ def build_feature_frame(
       - ts
 
     Outputs (recommended canonical set):
-      - atr_anchor   : ATR(period) on anchor bars
-      - atr_z        : rolling z-score of atr_anchor
-      - vol_bucket   : low/medium/high from atr_z
+      - ta_vol__atr      : ATR(period) on anchor bars
+      - ta_vol__atr_z    : rolling z-score of atr_anchor
+      - ta_vol__vol_bucket : low/medium/high from atr_z
 
     Notes:
       - This implementation is causal (rolling windows only; no full-day stats).
@@ -68,26 +68,26 @@ def build_feature_frame(
     out_frames: list[pl.DataFrame] = []
 
     for anchor_tf in anchor_tfs:
-        df = to_anchor_tf(candles, anchor_tf=str(anchor_tf))
+        df = to_anchor_tf(candles, anchor_tf=str(anchor_tf), where="ta_vol")
         if df.is_empty():
             continue
 
         df = ensure_sorted(df, by=["instrument", "ts"])
 
         # ATR + z-score regime
-        df = rolling_atr(df, group_cols=["instrument"], period=atr_period, out_col="atr_anchor", tr_col="_tr")
+        df = rolling_atr(df, group_cols=["instrument"], period=atr_period, out_col="ta_vol__atr", tr_col="_tr")
 
-        mean_atr = pl.col("atr_anchor").rolling_mean(z_window, min_periods=z_window).over("instrument")
-        std_atr = pl.col("atr_anchor").rolling_std(z_window, min_periods=z_window).over("instrument")
-        df = df.with_columns(zscore(pl.col("atr_anchor"), mean_expr=mean_atr, std_expr=std_atr).alias("atr_z"))
+        mean_atr = pl.col("ta_vol__atr").rolling_mean(z_window, min_periods=z_window).over("instrument")
+        std_atr = pl.col("ta_vol__atr").rolling_std(z_window, min_periods=z_window).over("instrument")
+        df = df.with_columns(zscore(pl.col("ta_vol__atr"), mean_expr=mean_atr, std_expr=std_atr).alias("ta_vol__atr_z"))
 
         df = df.with_columns(
             bucket_by_edges(
-                pl.col("atr_z"),
+                pl.col("ta_vol__atr_z"),
                 edges=[vol_z_medium_high_cut, vol_z_low_high_cut],
                 labels=["low", "medium", "high"],
                 default="unknown",
-            ).alias("vol_bucket")
+            ).alias("ta_vol__vol_bucket")
         )
 
         # Optional extra vol stats (useful for research; keep names namespaced)
@@ -97,8 +97,8 @@ def build_feature_frame(
             (pl.col("_ratio") - 1.0).alias("_ret1"),
             (pl.col("high") - pl.col("low")).alias("_range"),
         ).with_columns(
-            pl.col("_ret1").rolling_std(ret_window, min_periods=ret_window).over("instrument").alias("ta_vol_ret1_std"),
-            pl.col("_range").rolling_mean(ret_window, min_periods=ret_window).over("instrument").alias("ta_vol_range_mean"),
+            pl.col("_ret1").rolling_std(ret_window, min_periods=ret_window).over("instrument").alias("ta_vol__ret1_std"),
+            pl.col("_range").rolling_mean(ret_window, min_periods=ret_window).over("instrument").alias("ta_vol__range_mean"),
         )
 
         out = df.select(
@@ -106,11 +106,11 @@ def build_feature_frame(
                 pl.col("instrument"),
                 pl.lit(str(anchor_tf)).alias("anchor_tf"),
                 pl.col("ts"),
-                pl.col("atr_anchor"),
-                pl.col("atr_z"),
-                pl.col("vol_bucket"),
-                pl.col("ta_vol_ret1_std"),
-                pl.col("ta_vol_range_mean"),
+                pl.col("ta_vol__atr"),
+                pl.col("ta_vol__atr_z"),
+                pl.col("ta_vol__vol_bucket"),
+                pl.col("ta_vol__ret1_std"),
+                pl.col("ta_vol__range_mean"),
             ]
         )
 
