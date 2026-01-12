@@ -207,7 +207,12 @@ def _select_candidate_windows(df: pl.DataFrame) -> pl.DataFrame:
 # Main builder
 # -----------------------------------------------------------------------------
 
-def build_ict_hypotheses(ctx: Any, windows: pl.DataFrame, features: pl.DataFrame, principle_cfg: dict) -> HypoOut:
+def build_ict_hypotheses(
+    ctx: Any,
+    windows: pl.DataFrame,
+    features: pl.DataFrame,
+    principle_cfg: dict,
+) -> HypoOut:
     paradigm_id = str(principle_cfg.get("paradigm_id", "ict"))
     principle_id = str(principle_cfg.get("principle_id", "ict_all_windows"))
 
