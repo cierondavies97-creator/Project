@@ -143,6 +143,15 @@ def _ensure_decisions_critic_surface(ctx, decisions_critic: pl.DataFrame, trade_
         else:
             exprs.append(pl.lit("UNKNOWN").cast(pl.Utf8).alias("instrument"))
 
+    # Fill anchor context from trade_paths when critic omits it.
+    anchor_cols = ["anchor_tf", "anchor_ts", "tf_entry"]
+    missing_anchor = [c for c in anchor_cols if c not in out.columns]
+    if missing_anchor and trade_paths_group is not None and not trade_paths_group.is_empty():
+        available = [c for c in anchor_cols if c in trade_paths_group.columns]
+        if available:
+            anchor_map = trade_paths_group.select(["trade_id", *available]).unique()
+            out = out.join(anchor_map, on="trade_id", how="left")
+
     if exprs:
         out = out.with_columns(exprs)
 
