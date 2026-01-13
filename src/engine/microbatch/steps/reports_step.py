@@ -5,7 +5,6 @@ from typing import Iterable
 
 import polars as pl
 
-from engine.data.trade_paths import write_trade_paths_for_day
 from engine.data.run_reports import write_run_reports_for_cluster_day
 from engine.microbatch.types import BatchState
 
@@ -376,19 +375,7 @@ def run(state: BatchState) -> BatchState:
     state.set("reports", reports_df)
 
     # Persist run_reports (canonical table)
-    # Persist trade_paths here (contract owner boundary).
     td = state.key.trading_day
-    trade_paths = state.get("trade_paths")
-    if trade_paths is not None and not trade_paths.is_empty():
-        for df_part in trade_paths.partition_by("instrument", as_dict=False, maintain_order=True):
-            instrument = str(df_part["instrument"][0])
-            write_trade_paths_for_day(
-                ctx=state.ctx,
-                df=df_part,
-                instrument=instrument,
-                trading_day=td,
-                sandbox=False,
-            )
     write_run_reports_for_cluster_day(
         ctx=state.ctx,
         trading_day=state.key.trading_day,

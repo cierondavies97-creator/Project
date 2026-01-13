@@ -12,6 +12,7 @@ import yaml
 from engine.core.schema import TRADE_PATHS_SCHEMA, polars_dtype
 from engine.data.decisions import write_decisions_for_stage
 from engine.microbatch.types import BatchState
+from engine.data.trade_paths import write_trade_paths_for_day
 from engine.paradigms.api import get_hypotheses_builder
 from engine.research.snapshots import load_snapshot_manifest
 
@@ -354,5 +355,16 @@ def run(state: BatchState) -> BatchState:
             stage="hypotheses",
             decisions_df=decisions_hypotheses_df,
         )
+    # Persist trade_paths (contract owner boundary for hypotheses step).
+    if trade_paths_df is not None and not trade_paths_df.is_empty():
+        for df_part in trade_paths_df.partition_by("instrument", as_dict=False, maintain_order=True):
+            instrument = str(df_part["instrument"][0])
+            write_trade_paths_for_day(
+                ctx=state.ctx,
+                df=df_part,
+                instrument=instrument,
+                trading_day=trading_day,
+                sandbox=False,
+            )
 
     return state
