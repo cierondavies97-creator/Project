@@ -73,10 +73,12 @@ def critic_feature_hook(
         "threshold_macro_impact": thresholds.get("macro_impact_threshold"),
     }
 
-    feature_vector.update({
-        "features_corr_regime": features_corr.get("micro_corr_regime"),
-        "features_corr_cluster": features_corr.get("corr_cluster_id"),
-    })
+    feature_vector.update(
+        {
+            "features_corr_regime": features_corr.get("micro_corr_regime"),
+            "features_corr_cluster": features_corr.get("corr_cluster_id"),
+        }
+    )
 
     return feature_vector
 
@@ -213,9 +215,10 @@ def score_trades(
         base = base.with_columns(pl.col("entry_ts").alias("anchor_ts"))
 
     features_auto = load_features_auto()
+    paradigm_id = str(getattr(ctx, "paradigm_id", "dev_baseline") or "dev_baseline")
     vol_z_abs_min = get_threshold_float(
         features_auto=features_auto,
-        paradigm_id=str(getattr(ctx, "paradigm_id", "dev_baseline") or "dev_baseline"),
+        paradigm_id=paradigm_id,
         family="stat_ts",
         feature="stat_ts_vol_zscore",
         threshold_key="abs_min_for_signal",
@@ -223,7 +226,7 @@ def score_trades(
     )
     vol_z_abs_max = get_threshold_float(
         features_auto=features_auto,
-        paradigm_id=str(getattr(ctx, "paradigm_id", "dev_baseline") or "dev_baseline"),
+        paradigm_id=paradigm_id,
         family="stat_ts",
         feature="stat_ts_vol_zscore",
         threshold_key="abs_max_clip",
