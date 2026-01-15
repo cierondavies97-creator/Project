@@ -176,6 +176,7 @@ def score_trades(
             }
         )
 
+    base_columns = [
     base_cols = [
         "snapshot_id",
         "run_id",
@@ -185,6 +186,53 @@ def score_trades(
         "instrument",
         "trade_id",
     ]
+    base = trade_paths.select(base_columns).unique()
+    sentinel = "unknown"
+    context_columns = [
+        "vol_regime",
+        "macro_state",
+        "corr_cluster_id",
+        "tod_bucket",
+    ]
+
+    if decisions_hypotheses is None or decisions_hypotheses.is_empty():
+        context_df = base.select("trade_id").with_columns(
+            [pl.lit(sentinel).alias(name) for name in context_columns]
+        )
+    else:
+        context_exprs: list[pl.Expr] = []
+        for name in context_columns:
+            if name in decisions_hypotheses.columns:
+                context_exprs.append(
+                    pl.col(name).cast(pl.Utf8, strict=False).fill_null(sentinel).alias(name)
+                )
+            else:
+                context_exprs.append(pl.lit(sentinel).alias(name))
+        context_df = decisions_hypotheses.select(
+            [
+                pl.col("trade_id").cast(pl.Utf8, strict=False).alias("trade_id"),
+                *context_exprs,
+            ]
+        ).unique(subset=["trade_id"])
+
+    decisions_critic = (
+        base.join(context_df, on="trade_id", how="left")
+        .with_columns(
+            pl.lit(0.0).alias("critic_score_at_entry"),
+            pl.lit('["ict_noop"]').alias("critic_reason_tags_at_entry"),
+            pl.concat_str(
+                [pl.col(name).fill_null(sentinel) for name in context_columns],
+                separator="|",
+            ).alias("critic_reason_cluster_id"),
+        )
+        .select(
+            [
+                *base_columns,
+                "critic_score_at_entry",
+                "critic_reason_tags_at_entry",
+                "critic_reason_cluster_id",
+            ]
+        )
     trade_extra = [c for c in ["anchor_tf", "entry_ts", "anchor_ts"] if c in trade_paths.columns]
     base = trade_paths.select(base_cols + trade_extra).unique(maintain_order=True)
 
